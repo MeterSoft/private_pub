@@ -1,4 +1,4 @@
-function buildPrivatePub(doc) {
+var PrivatePub = (function (doc) {
   var self = {
     connecting: false,
     fayeClient: null,
@@ -14,17 +14,31 @@ function buildPrivatePub(doc) {
         self.fayeCallbacks.push(callback);
         if (self.subscriptions.server && !self.connecting) {
           self.connecting = true;
-          var script = doc.createElement("script");
-          script.type = "text/javascript";
-          script.src = self.subscriptions.server + ".js";
-          script.onload = self.connectToFaye;
-          doc.documentElement.appendChild(script);
+          if (typeof Faye === 'undefined') {
+            var script = doc.createElement("script");
+            script.type = "text/javascript";
+            script.src = self.subscriptions.server + ".js";
+            {
+             var done = false;
+              script.onload = script.onreadystatechange = function(){
+                if(!done && (!this.readyState || this.readyState === "loaded" || this.readyState === "complete")){
+                    done = true;
+                    self.connectToFaye()
+                    script.onload = script.onreadystatechange = null;
+                }
+              }
+          }
+            doc.documentElement.appendChild(script);
+          } else {
+            self.connectToFaye();
+          }
         }
       }
     },
 
     connectToFaye: function() {
       self.fayeClient = new Faye.Client(self.subscriptions.server);
+      self.fayeClient.disable('autodisconnect');
       self.fayeClient.addExtension(self.fayeExtension);
       for (var i=0; i < self.fayeCallbacks.length; i++) {
         self.fayeCallbacks[i](self.fayeClient);
@@ -84,6 +98,7 @@ function buildPrivatePub(doc) {
       if (sub) {
         sub.cancel();
         delete self.subscriptionObjects[channel];
+        delete self.subscriptionCallbacks[channel];
       }
     },
 
@@ -92,6 +107,4 @@ function buildPrivatePub(doc) {
     }
   };
   return self;
-}
-
-var PrivatePub = buildPrivatePub(document);
+}(document));

@@ -69,8 +69,30 @@ module PrivatePub
     # Returns the Faye Rack application.
     # Any options given are passed to the Faye::RackAdapter.
     def faye_app(options = {})
-      options = {:mount => "/faye", :timeout => 45, :extensions => [FayeExtension.new]}.merge(options)
-      Faye::RackAdapter.new(options)
+      options = {:mount => "/faye", :timeout => 30, :extensions => [FayeExtension.new]}.merge(options)
+      app = Faye::RackAdapter.new(options)
+      
+      app.on(:handshake) do |client_id|
+        p "--------- Conected ---------"
+      end
+      
+      app.on(:subscribe) do |client_id, chanel|
+        p "--------- Subscribe ---------"
+      end
+
+      app.on(:unsubscribe) do |client_id, chanel|
+        p "--------- Unsubscribe ---------"
+      end
+
+      app.on(:publish) do |client_id, chanel|
+        p "--------- publish ---------"
+      end
+
+      app.on(:disconnect) do |client_id|
+        p "--------- disconnect ---------"
+      end
+
+      app
     end
   end
 
